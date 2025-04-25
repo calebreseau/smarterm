@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import platform # Ajout de l'import platform
 import google.genai as genai
 import configparser
 from rich.console import Console # Import Rich Console
@@ -48,16 +49,36 @@ except Exception as e:
     console.print(f"[bold red]Erreur[/bold red] lors de l'initialisation du client Gemini avec la clé fournie: {e}")
     sys.exit(1)
 
-# Prompt système
-SYSTEM_PROMPT = (
-    "Tu es un assistant IA proactif opérant dans un terminal sous Windows. "
-    "Ton objectif est d'aider l'utilisateur à atteindre ses buts en exécutant des commandes shell (CMD/PowerShell). "
-    "Utilise l'historique des commandes et leurs sorties pour comprendre le contexte. "
-    "Anticipe les besoins de l'utilisateur si possible. "
-    "Quand tu dois exécuter une commande, réponds *uniquement* avec 'CMD:' suivi de la commande exacte. Exemple : CMD:dir /w. "
-    "Pour toute autre réponse (explication, question), utilise du langage naturel. "
-    "Sois concis dans tes réponses."
-)
+# --- Génération dynamique du Prompt Système --- 
+def get_system_prompt() -> str:
+    """Génère le prompt système en fonction de l'OS détecté."""
+    os_name = platform.system()
+    if os_name == "Windows":
+        shell_type = "CMD/PowerShell"
+        os_specific_guidance = "Tu opères dans un terminal sous Windows."
+    elif os_name == "Linux":
+        shell_type = "bash/zsh ou autre shell standard Linux"
+        os_specific_guidance = "Tu opères dans un terminal sous Linux."
+    elif os_name == "Darwin": # macOS
+        shell_type = "bash/zsh ou autre shell standard macOS"
+        os_specific_guidance = "Tu opères dans un terminal sous macOS."
+    else:
+        shell_type = "shell inconnu"
+        os_specific_guidance = f"Tu opères dans un terminal sous un système d'exploitation inconnu ({os_name}). Essaye d'utiliser des commandes POSIX standard."
+
+    return (
+        f"{os_specific_guidance} "
+        f"Ton objectif est d'aider l'utilisateur à atteindre ses buts en exécutant des commandes {shell_type}. "
+        f"Utilise l'historique des commandes et leurs sorties pour comprendre le contexte. "
+        f"Anticipe les besoins de l'utilisateur si possible. "
+        f"Quand tu dois exécuter une commande, réponds *uniquement* avec 'CMD:' suivi de la commande exacte. "
+        f"Exemple (Windows): CMD:dir /w. Exemple (Linux/macOS): CMD:ls -l. "
+        f"Pour toute autre réponse (explication, question), utilise du langage naturel. "
+        f"Sois concis dans tes réponses."
+    )
+
+# Définir le prompt système au démarrage
+SYSTEM_PROMPT = get_system_prompt()
 
 def get_user_confirmation(command: str) -> tuple[bool, str]:
     """
@@ -81,7 +102,7 @@ def get_user_confirmation(command: str) -> tuple[bool, str]:
         else:
             return True, user_command
     except KeyboardInterrupt:
-        console.print(f"\\n[magenta][SYSTEM][/magenta] Commande annulée. Vous pouvez demander une correction.")
+        console.print(f"\n[magenta][SYSTEM][/magenta] Commande annulée. Vous pouvez demander une correction.")
         return False, "" # Pas de commande à exécuter
 
 def execute_command(command: str) -> tuple[str, str, int]:
@@ -102,10 +123,7 @@ def execute_command(command: str) -> tuple[str, str, int]:
 
         # Lire stderr avec Rich
         if process.stderr:
-            # Créer une console spécifique pour stderr si ce n'est pas déjà fait
-            # Cela permet de garder la console principale pour stdout
-            # Note: Pour une gestion plus fine, on pourrait créer la console_stderr une fois
-            # en dehors de la fonction ou utiliser console.file = sys.stderr temporairement.
+            # Créer une console spécifique pour stderr pour l'affichage coloré
             console_stderr = Console(file=sys.stderr, style="bold red")
             for line in process.stderr:
                 line_content = line.strip()
@@ -144,9 +162,9 @@ def get_ai_response(user_input: str, history: list = None, verbose: bool = True)
 
         if "ai_command" in entry:
             # L'IA a répondu avec une commande (après une requête ASK)
-            stdout_part = f"\\nSortie:\\n```\\n{entry.get('stdout', '').strip()}\\n```" if entry.get('stdout') else ""
-            stderr_part = f"\\nErreurs:\\n```\\n{entry.get('stderr', '').strip()}\\n```" if entry.get('stderr') else ""
-            flat_history.append(f"Assistant (CMD:{entry['ai_command']}):{stdout_part}{stderr_part}\\nCode retour: {entry['return_code']}")
+            stdout_part = f"\nSortie:\n```\n{entry.get('stdout', '').strip()}\n```" if entry.get('stdout') else ""
+            stderr_part = f"\nErreurs:\n```\n{entry.get('stderr', '').strip()}\n```" if entry.get('stderr') else ""
+            flat_history.append(f"Assistant (CMD:{entry['ai_command']}):{stdout_part}{stderr_part}\nCode retour: {entry['return_code']}")
         elif "ai_response" in entry:
             # L'IA a répondu avec du texte (après une requête ASK)
             flat_history.append(f"Assistant (TEXT): {entry['ai_response']}")
@@ -154,9 +172,9 @@ def get_ai_response(user_input: str, history: list = None, verbose: bool = True)
             # Action annulée par l'utilisateur (après une requête ASK)
             flat_history.append(f"Assistant: (Action annulée par l'utilisateur : Proposition était 'CMD:{entry['proposed_command']}')")
         elif "user_command" in entry: # Commande exécutée directement en mode EXECUTE
-            stdout_part = f"\\nSortie:\\n```\\n{entry.get('stdout', '').strip()}\\n```" if entry.get('stdout') else ""
-            stderr_part = f"\\nErreurs:\\n```\\n{entry.get('stderr', '').strip()}\\n```" if entry.get('stderr') else ""
-            flat_history.append(f"Utilisateur (EXECUTE CMD:{entry['user_command']}):{stdout_part}{stderr_part}\\nCode retour: {entry['return_code']}")
+            stdout_part = f"\nSortie:\n```\n{entry.get('stdout', '').strip()}\n```" if entry.get('stdout') else ""
+            stderr_part = f"\nErreurs:\n```\n{entry.get('stderr', '').strip()}\n```" if entry.get('stderr') else ""
+            flat_history.append(f"Utilisateur (EXECUTE CMD:{entry['user_command']}):{stdout_part}{stderr_part}\nCode retour: {entry['return_code']}")
 
     # Ajouter la dernière requête utilisateur (mode ASK)
     flat_history.append(f"Utilisateur (ASK): {user_input}")
@@ -176,7 +194,7 @@ def get_ai_response(user_input: str, history: list = None, verbose: bool = True)
         else:
             # Utiliser Rich pour afficher le feedback de debug
             console.print(f"[magenta][SYSTEM][/magenta] DEBUG - Prompt Feedback:", response.prompt_feedback)
-            # Retourner un message d'erreur formaté qui sera affiché par la boucle principale
+            # Retourner un message d'erreur formaté pour la boucle principale
             return "[AI_ERROR]Désolé, je n'ai pas pu générer de réponse. Vérifiez les éventuels blocages de sécurité."
 
     except genai.errors.ClientError as e:
@@ -215,7 +233,7 @@ def get_ai_explanation(command: str, stdout: str, stderr: str, return_code: int)
         # Appel API simplifié, sans l'historique de conversation principal
         response = client.models.generate_content(
             model='models/gemini-2.5-pro-exp-03-25', # Ou un modèle plus rapide si suffisant
-            contents=[SYSTEM_PROMPT, explanation_prompt], # Contexte minimal
+            contents=[SYSTEM_PROMPT, explanation_prompt], # Utilise le prompt dynamique
             # On pourrait ajouter des safety_settings plus stricts ici si besoin
         )
         if response.text:
@@ -255,7 +273,7 @@ def get_ai_error_analysis(command: str, stdout: str, stderr: str, return_code: i
         # Appel API sans l'historique de conversation pour cette tâche spécifique
         response = client.models.generate_content(
             model='models/gemini-2.5-pro-exp-03-25', # Modèle performant pour l'analyse
-            contents=[SYSTEM_PROMPT, error_prompt],
+            contents=[SYSTEM_PROMPT, error_prompt], # Utilise le prompt dynamique
         )
         if response.text:
             return response.text.strip()
@@ -369,8 +387,7 @@ def main():
                     if ai_error_analysis_result.startswith("[AI_ERROR]"):
                         error_message = ai_error_analysis_result.replace("[AI_ERROR]", "").strip()
                         console.print(f"[bold red]Erreur Analyse:[/bold red] {error_message}")
-                        # Ajouter l'échec de l'analyse à l'historique?
-                        # command_history.append({...})
+                        # L'échec de l'analyse est géré, pas besoin d'ajouter spécifiquement à l'historique ici
                     elif ai_error_analysis_result.startswith("CMD:"):
                         # --- Proposition de correction par l'IA ---
                         corrected_command = ai_error_analysis_result[4:].strip()
@@ -400,8 +417,7 @@ def main():
                     else:
                         # L'IA a fourni une explication sans commande
                         console.print(f"[yellow]Analyse IA:[/yellow]\n{ai_error_analysis_result}")
-                         # Ajouter l'analyse à l'historique?
-                        # command_history.append({...})
+                         # L'analyse elle-même n'est pas une action historisable de la même manière qu'une commande
 
             # --- Explication Post-Exécution (si succès ET verbose) ---
             elif not command_failed and verbose_mode and executed_command_info:
@@ -417,9 +433,9 @@ def main():
         except EOFError:
             break
         except KeyboardInterrupt:
-            console.print(f"\\n[magenta][SYSTEM][/magenta] Interruption reçue. Tapez 'exit' pour quitter.")
+            console.print(f"\n[magenta][SYSTEM][/magenta] Interruption reçue. Tapez 'exit' pour quitter.")
 
-    console.print(f"\\n[magenta][SYSTEM][/magenta] Au revoir!")
+    console.print(f"\n[magenta][SYSTEM][/magenta] Au revoir!")
 
 if __name__ == "__main__":
-    main() # Plus besoin de l'astuce os.system('') 
+    main() 

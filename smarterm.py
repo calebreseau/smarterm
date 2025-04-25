@@ -301,15 +301,15 @@ def get_ai_error_analysis(command: str, stdout: str, stderr: str, return_code: i
 
 # --- ASCII Art Banner --- 
 # (Assigné à une variable pour éviter les problèmes de parsing dans les f-strings ou print multilignes)
-BANNER = """
-                           _                      
-                          | |                     
-  ___ _ __ ___   __ _ _ __| |_ ___ _ __ _ __ ___  
- / __| '_ ` _ \ / _` | '__| __/ _ \ '__| '_ ` _ \ 
- \__ \ | | | | | (_| | |  | ||  __/ |  | | | | | |
+BANNER = r"""
+                            _                      
+                           | |                     
+   ___ _ __ ___   __ _ _ __| |_ ___ _ __ _ __ ___  
+  / __| '_ ` _ \ / _` | '__| __/ _ \ '__| '_ ` _ \ 
+ \__ \ | | | | | (_| | |  | ||  __/ |  | | | | | | |
  |___/_| |_| |_|\__,_|_|   \__\___|_|  |_| |_| |_|
-                                                  
-                                                  
+                                                   
+                                                   
 """
 
 def main():

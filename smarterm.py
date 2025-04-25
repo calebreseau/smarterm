@@ -315,6 +315,13 @@ BANNER = r"""
 def main():
     """Boucle principale du terminal avec modes, verbosité, Rich UI et gestion d'erreurs."""
 
+    # --- Nettoyage initial de l'écran ---
+    os_name = platform.system()
+    if os_name == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')
+
     # --- Affichage du Banner --- 
     console.print(f"[bold cyan]{BANNER}[/bold cyan]")
     version = "1.0"
@@ -329,7 +336,7 @@ def main():
     console.print("[cyan]  '!!'       [/cyan]: Changer de mode (EXECUTE/ASK)")
     console.print("[cyan]  '!verbose' [/cyan] ou [cyan]'!v'[/cyan]: Basculer mode verbose (explications ON[bold green]V[/bold green]/OFF)")
     console.print("[cyan]  '!clear'   [/cyan] ou [cyan]'!cls'[/cyan]: Effacer l'écran")
-    console.print("[cyan]  'exit'     [/cyan]: Quitter")
+    console.print("[cyan]  'exit' [/cyan] ou [cyan]'!q' [/cyan]: Quitter")
 
     command_history = []
     mode = "EXECUTE"
@@ -348,7 +355,7 @@ def main():
             # --- Commandes Spéciales Internes ---
             input_lower = user_input.lower()
 
-            if input_lower == 'exit':
+            if input_lower in ['exit', '!q']:
                 break
 
             if input_lower == '!!':
@@ -377,7 +384,7 @@ def main():
                 console.print("[cyan]  '!!'       [/cyan]: Changer de mode (EXECUTE/ASK)")
                 console.print("[cyan]  '!verbose' [/cyan] ou [cyan]'!v'[/cyan]: Basculer mode verbose (explications ON[bold green]V[/bold green]/OFF)")
                 console.print("[cyan]  '!clear'   [/cyan] ou [cyan]'!cls'[/cyan]: Effacer l'écran")
-                console.print("[cyan]  'exit'     [/cyan]: Quitter")
+                console.print("[cyan]  'exit'/'q' [/cyan]: Quitter")
                 continue # Passer à la prochaine itération de la boucle
 
             if not user_input:

@@ -1,4 +1,4 @@
-# SmarTerm ✨
+# smarterm ✨
 
 Your intelligent terminal assistant powered by Google Gemini.
 

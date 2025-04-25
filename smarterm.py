@@ -299,21 +299,42 @@ def get_ai_error_analysis(command: str, stdout: str, stderr: str, return_code: i
         console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
         return f"[AI_ERROR]Erreur inattendue pour l'analyse d'erreur."
 
+# --- ASCII Art Banner --- 
+# (Assigné à une variable pour éviter les problèmes de parsing dans les f-strings ou print multilignes)
+BANNER = """
+                           _                      
+                          | |                     
+  ___ _ __ ___   __ _ _ __| |_ ___ _ __ _ __ ___  
+ / __| '_ ` _ \ / _` | '__| __/ _ \ '__| '_ ` _ \ 
+ \__ \ | | | | | (_| | |  | ||  __/ |  | | | | | |
+ |___/_| |_| |_|\__,_|_|   \__\___|_|  |_| |_| |_|
+                                                  
+                                                  
+"""
+
 def main():
     """Boucle principale du terminal avec modes, verbosité, Rich UI et gestion d'erreurs."""
-    # Clarification dans le message d'accueil
-    console.print("[bold magenta]Terminal IA[/bold magenta]")
+
+    # --- Affichage du Banner --- 
+    console.print(f"[bold cyan]{BANNER}[/bold cyan]")
+    version = "1.0"
+    repo_url = "https://github.com/calebreseau/smarterm" 
+    console.print(f"[dim]Version {version} | {repo_url}[/dim]\n")
+
+    # Message d'accueil et instructions
     console.print("[magenta]Modes:[/magenta]")
     console.print("  [bold](E)XECUTE[/bold]: Tapez des commandes shell directement.")
     console.print("  [bold](A)SK[/bold]    : Posez des questions ou demandez des commandes à l'IA.")
     console.print("[magenta]Commandes spéciales:[/magenta]")
-    console.print("[cyan]  '!!'      [/cyan]: Changer de mode (EXECUTE/ASK)")
-    console.print("[cyan]  '!verbose'[/cyan] ou [cyan]'!v'[/cyan]: Basculer mode verbose (explications post-commande ON[bold green]V[/bold green]/OFF)")
-    console.print("[cyan]  'exit'    [/cyan]: Quitter")
+    console.print("[cyan]  '!!'       [/cyan]: Changer de mode (EXECUTE/ASK)")
+    console.print("[cyan]  '!verbose' [/cyan] ou [cyan]'!v'[/cyan]: Basculer mode verbose (explications ON[bold green]V[/bold green]/OFF)")
+    console.print("[cyan]  '!clear'   [/cyan] ou [cyan]'!cls'[/cyan]: Effacer l'écran")
+    console.print("[cyan]  'exit'     [/cyan]: Quitter")
 
     command_history = []
     mode = "EXECUTE"
     verbose_mode = True
+    os_name = platform.system() # Détecter l'OS une seule fois
 
     while True:
         try:
@@ -324,19 +345,40 @@ def main():
             # Utiliser Prompt.ask pour l'input principal
             user_input = Prompt.ask(f"[cyan]{prompt_prefix}[/cyan]", default="", show_default=False).strip()
 
-            if user_input.lower() == 'exit':
+            # --- Commandes Spéciales Internes ---
+            input_lower = user_input.lower()
+
+            if input_lower == 'exit':
                 break
 
-            if user_input == '!!':
+            if input_lower == '!!':
                 mode = "ASK" if mode == "EXECUTE" else "EXECUTE"
                 console.print(f"[magenta][SYSTEM][/magenta] Passage en mode [bold]{mode}[/bold].")
                 continue
 
-            if user_input.lower() in ['!verbose', '!v']:
+            if input_lower in ['!verbose', '!v']:
                 verbose_mode = not verbose_mode
                 status = "[bold green]activé[/bold green]" if verbose_mode else "[bold red]désactivé[/bold red]"
                 console.print(f"[magenta][SYSTEM][/magenta] Mode verbose {status}.")
                 continue
+
+            if input_lower in ['!clear', '!cls']:
+                if os_name == "Windows":
+                    os.system('cls')
+                else:
+                    os.system('clear')
+                # Réafficher le banner et les instructions après l'effacement
+                console.print(f"[bold cyan]{BANNER}[/bold cyan]") # Utiliser la variable
+                console.print(f"[dim]Version {version} | {repo_url}[/dim]\n")
+                console.print("[magenta]Modes:[/magenta]")
+                console.print("  [bold](E)XECUTE[/bold]: Tapez des commandes shell directement.")
+                console.print("  [bold](A)SK[/bold]    : Posez des questions ou demandez des commandes à l'IA.")
+                console.print("[magenta]Commandes spéciales:[/magenta]")
+                console.print("[cyan]  '!!'       [/cyan]: Changer de mode (EXECUTE/ASK)")
+                console.print("[cyan]  '!verbose' [/cyan] ou [cyan]'!v'[/cyan]: Basculer mode verbose (explications ON[bold green]V[/bold green]/OFF)")
+                console.print("[cyan]  '!clear'   [/cyan] ou [cyan]'!cls'[/cyan]: Effacer l'écran")
+                console.print("[cyan]  'exit'     [/cyan]: Quitter")
+                continue # Passer à la prochaine itération de la boucle
 
             if not user_input:
                 continue

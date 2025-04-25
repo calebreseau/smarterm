@@ -100,4 +100,6 @@ The application will start and display a banner followed by the prompt.
 
 ## License
 
-To be defined (e.g., MIT). 
+This project is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+See the [LICENSE](LICENSE) file for details. 

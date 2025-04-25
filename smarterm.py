@@ -179,12 +179,25 @@ def get_ai_response(user_input: str, history: list = None, verbose: bool = True)
             # Retourner un message d'erreur formaté qui sera affiché par la boucle principale
             return "[AI_ERROR]Désolé, je n'ai pas pu générer de réponse. Vérifiez les éventuels blocages de sécurité."
 
+    except genai.errors.ClientError as e:
+        # Gérer spécifiquement l'erreur de quota épuisé
+        if "RESOURCE_EXHAUSTED" in str(e):
+            error_msg = "Quota d'API Google Gemini épuisé. Veuillez vérifier votre plan et vos informations de facturation."
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]{error_msg}"
+        else:
+            # Autres erreurs client de l'API
+            error_msg = f"Erreur client API Gemini: {e}"
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]Erreur de communication avec l'IA (Client)."
+
     except Exception as e:
-        error_msg = f"Erreur lors de l'appel à l'API Gemini: {e}"
-        # Imprimer l'erreur système immédiatement avec Rich
-        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red", stderr=True)
+        # Autres exceptions génériques
+        error_msg = f"Erreur inattendue lors de l'appel à l'API Gemini: {e}"
+        # Imprimer l'erreur système immédiatement avec Rich (sans stderr)
+        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
         # Retourner un message d'erreur formaté pour la boucle principale
-        return f"[AI_ERROR]Erreur de communication avec l'IA."
+        return f"[AI_ERROR]Erreur inattendue de communication avec l'IA."
 
 # --- Nouvelle fonction pour obtenir l'explication de l'IA ---
 def get_ai_explanation(command: str, stdout: str, stderr: str, return_code: int) -> str:
@@ -210,10 +223,19 @@ def get_ai_explanation(command: str, stdout: str, stderr: str, return_code: int)
         else:
             console.print(f"[magenta][SYSTEM][/magenta] DEBUG - Prompt Feedback (Explanation):", response.prompt_feedback)
             return "[AI_ERROR]Impossible d'obtenir une explication."
+    except genai.errors.ClientError as e:
+        if "RESOURCE_EXHAUSTED" in str(e):
+            error_msg = "Quota d'API Google Gemini épuisé pour l'explication."
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]{error_msg}"
+        else:
+            error_msg = f"Erreur client API pendant la demande d'explication: {e}"
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]Erreur de communication pour l'explication (Client)."
     except Exception as e:
-        error_msg = f"Erreur API pendant la demande d'explication: {e}"
-        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red", stderr=True)
-        return f"[AI_ERROR]Erreur de communication pour l'explication."
+        error_msg = f"Erreur inattendue pendant la demande d'explication: {e}"
+        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+        return f"[AI_ERROR]Erreur inattendue pour l'explication."
 
 # --- Nouvelle fonction pour l'analyse d'erreur par l'IA ---
 def get_ai_error_analysis(command: str, stdout: str, stderr: str, return_code: int) -> str:
@@ -240,10 +262,19 @@ def get_ai_error_analysis(command: str, stdout: str, stderr: str, return_code: i
         else:
             console.print(f"[magenta][SYSTEM][/magenta] DEBUG - Prompt Feedback (Error Analysis):", response.prompt_feedback)
             return "[AI_ERROR]Impossible d'analyser l'erreur."
+    except genai.errors.ClientError as e:
+        if "RESOURCE_EXHAUSTED" in str(e):
+            error_msg = "Quota d'API Google Gemini épuisé pour l'analyse d'erreur."
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]{error_msg}"
+        else:
+            error_msg = f"Erreur client API pendant l'analyse de l'erreur: {e}"
+            console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+            return f"[AI_ERROR]Erreur de communication pour l'analyse d'erreur (Client)."
     except Exception as e:
-        error_msg = f"Erreur API pendant l'analyse de l'erreur: {e}"
-        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red", stderr=True)
-        return f"[AI_ERROR]Erreur de communication pour l'analyse d'erreur."
+        error_msg = f"Erreur inattendue pendant l'analyse de l'erreur: {e}"
+        console.print(f"[bold red]ERR>[/bold red] {error_msg}", style="bold red")
+        return f"[AI_ERROR]Erreur inattendue pour l'analyse d'erreur."
 
 def main():
     """Boucle principale du terminal avec modes, verbosité, Rich UI et gestion d'erreurs."""

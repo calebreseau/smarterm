@@ -11,8 +11,13 @@ from rich.prompt import Prompt # Import Rich Prompt pour un input stylisé
 console = Console()
 
 # --- Configuration ---
-def load_api_key(config_file='config.ini') -> str | None:
-    """Charge la clé API Gemini depuis un fichier de configuration."""
+# Construire le chemin par défaut vers config.ini dans le dossier utilisateur
+default_config_path = os.path.join(os.path.expanduser('~'), 'smarterm', 'config.ini')
+
+def load_api_key(config_file=default_config_path) -> str | None:
+    """Charge la clé API Gemini depuis un fichier de configuration.
+    Par défaut, cherche dans $HOME/smarterm/config.ini.
+    """
     config = configparser.ConfigParser()
     try:
         if not os.path.exists(config_file):
